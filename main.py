@@ -175,6 +175,6 @@ async def on_ready():
     await tree.sync()
     print(f"bot is working and is online as {bot.user}")
 
-bot.run(erm)
+bot.run(ERM)
 
 ##hi sigmas##
