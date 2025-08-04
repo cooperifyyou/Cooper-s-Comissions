@@ -176,3 +176,5 @@ async def on_ready():
     print(f"bot is working and is online as {bot.user}")
 
 bot.run(os.environ.get('DCBOT'))
+
+##hi sigmas##
