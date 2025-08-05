@@ -9,10 +9,11 @@ from datetime import datetime
 
 # configurationnnnn #
 LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in
-TRELLO_KEY = os.environ.get('APIKEY')  # replace this with your trello key
-TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # replace this with your trello token
-TRELLO_BOARD_ID = os.environ.get('BOARDID')  # replace this with your board id
-TRELLO_LIST_ID = os.environ.get('LISTID')  # replace this with your list id
+TRELLO_KEY = os.environ.get('APIKEY')  # this is your trello API key
+TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # this is your trello token
+TRELLO_BOARD_ID = os.environ.get('BOARDID')  # this is your board id
+TRELLO_LIST_ID = os.environ.get('LISTID')  # ths is the game integration list id [Game Integration]
+TRELLO_LOG_ID = os.environ.get('TRELLOLOGID') # this is the admin log list id,
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -31,17 +32,31 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     )
 
     url = "https://api.trello.com/1/cards"
-    params = {
-        'idList': TRELLO_LIST_ID,
+
+
+    params_log = {
+        'idList': TRELLO_LOG_ID,
         'name': title,
         'desc': description,
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
 
-    response = requests.post(url, data=params)
-    print("Trello Response:", response.status_code, response.text)
-    return response.status_code == 200
+    params_game = {
+        'idList': TRELLO_LIST_ID,
+        'name': title,
+        'desc': reason,  # only put the reason here for the game stuff
+        'key': TRELLO_KEY,
+        'token': TRELLO_TOKEN
+    }
+
+    response_log = requests.post(url, data=params_log)
+    response_game = requests.post(url, data=params_game)
+
+    print("log responsee", response_log.status_code, response_log.text)
+    print("game responsee", response_game.status_code, response_game.text)
+
+    return response_log.status_code == 200 and response_game.status_code == 200
 
 def is_user_already_banned(username: str) -> bool:
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
