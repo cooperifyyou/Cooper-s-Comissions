@@ -21,23 +21,27 @@ tree = bot.tree
 
 def add_user(username: str, whobanned: str, reason: str, days: int):
     title = username
+    title_log = f"{username} [BAN]"
     duration = "Permanent" if days == 0 else f"{days} days"
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
-    description = (
+    # Description for log list card
+    description_log = (
         f"**Banned by**: {whobanned}\n"
         f"**Reason**: {reason}\n"
         f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
 
-    url = "https://api.trello.com/1/cards"
+    # Description for game integration list card
+    description_game = f"{reason}\nBan Length: {duration}"
 
+    url = "https://api.trello.com/1/cards"
 
     params_log = {
         'idList': TRELLO_LOG_ID,
-        'name': title,
-        'desc': description,
+        'name': title_log,
+        'desc': description_log,
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
@@ -45,7 +49,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     params_game = {
         'idList': TRELLO_LIST_ID,
         'name': title,
-        'desc': reason,  # only put the reason here for the game stuff
+        'desc': description_game,
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
@@ -53,10 +57,11 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     response_log = requests.post(url, data=params_log)
     response_game = requests.post(url, data=params_game)
 
-    print("log responsee", response_log.status_code, response_log.text)
-    print("game responsee", response_game.status_code, response_game.text)
+    print("Trello Log Response:", response_log.status_code, response_log.text)
+    print("Trello Game Response:", response_game.status_code, response_game.text)
 
     return response_log.status_code == 200 and response_game.status_code == 200
+
 
 def is_user_already_banned(username: str) -> bool:
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
@@ -143,13 +148,16 @@ async def clearbans(interaction: discord.Interaction):
 @tree.command(name="unban", description="Unban a user")
 @app_commands.describe(username="Roblox username to unban", reason="Why you're unbanning them")
 async def unban(interaction: discord.Interaction, username: str, reason: str):
-    url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+    # Get cards from game integration list (TRELLO_LIST_ID)
+    get_url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
     params = {
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
 
-    response = requests.get(url, params=params)
+    response = requests.get(get_url, params=params)
     cards = response.json() if response.status_code == 200 else []
 
     target_card = None
@@ -159,31 +167,49 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
             break
 
     if not target_card:
-        await interaction.response.send_message(f"❌ No ban found for **{username}**.")
-        return
-
-    delete_url = f"https://api.trello.com/1/cards/{target_card['id']}"
-    delete_response = requests.delete(delete_url, params=params)
-
-    if delete_response.status_code == 200:
-        await interaction.response.send_message(f"✅ Sucessfully unbanned **{username}**")
-
-        embed = discord.Embed(
-            title="Unban Command Used",
-            color=discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.add_field(name="Unbanned User", value=f"`{username}`", inline=True)
-        embed.add_field(name="Unbanned By", value=interaction.user.mention, inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
-
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            await log_channel.send(embed=embed)
-        else:
-            print("the log channel was not found")
+        await interaction.response.send_message(f"❌ No ban found for **{username}** in the game integration list.")
     else:
-        await interaction.response.send_message(f"❌ Failed to unban **{username}**.")
+        delete_url = f"https://api.trello.com/1/cards/{target_card['id']}"
+        delete_response = requests.delete(delete_url, params=params)
+
+        if delete_response.status_code != 200:
+            await interaction.response.send_message(f"❌ Failed to unban **{username}**.")
+            return
+
+    # Add new card to LOG list for UNBAN (TRELLO_LOG_ID)
+    log_title = f"{username} [UNBAN]"
+    log_desc = (
+        f"**Unbanned by**: {interaction.user.name}\n"
+        f"**Reason**: {reason}\n"
+        f"**Timestamp**: {timestamp}"
+    )
+
+    add_url = "https://api.trello.com/1/cards"
+    create_params = {
+        'idList': TRELLO_LOG_ID,
+        'name': log_title,
+        'desc': log_desc,
+        'key': TRELLO_KEY,
+        'token': TRELLO_TOKEN
+    }
+
+    requests.post(add_url, data=create_params)
+
+    await interaction.response.send_message(f"✅ Successfully unbanned **{username}**.")
+
+    embed = discord.Embed(
+        title="Unban Command Used",
+        color=discord.Color.green(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.add_field(name="Unbanned User", value=f"`{username}`", inline=True)
+    embed.add_field(name="Unbanned By", value=interaction.user.mention, inline=True)
+    embed.add_field(name="Reason", value=reason, inline=False)
+
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    if log_channel:
+        await log_channel.send(embed=embed)
+
 
 token = os.environ.get("ERM")
 
