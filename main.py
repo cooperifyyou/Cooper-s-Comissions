@@ -8,10 +8,10 @@ import os
 from datetime import datetime
 
 # configurationnnnn #
-LOG_CHANNEL_ID = os.environ.get('LOGCHANNEL')  # replace this with your channel you want to have the logs in
-TRELLO_KEY = os.environ.get('TRELLOKEY')  # replace this with your trello key
+LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in
+TRELLO_KEY = os.environ.get('APIKEY')  # replace this with your trello key
 TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # replace this with your trello token
-TRELLO_BOARD_ID = os.environ.get('TRELLOBOARD')  # replace this with your board id
+TRELLO_BOARD_ID = os.environ.get('BOARDID')  # replace this with your board id
 TRELLO_LIST_ID = os.environ.get('LISTID')  # replace this with your list id
 
 intents = discord.Intents.default()
