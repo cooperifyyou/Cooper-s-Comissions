@@ -170,11 +170,13 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
     else:
         await interaction.response.send_message(f"❌ Failed to unban **{username}**.")
 
+token = os.environ.get("ERM")
+
 @bot.event
 async def on_ready():
     await tree.sync()
     print(f"bot is working and is online as {bot.user}")
 
-bot.run(process.env.ERM);
+bot.run(token)
 
 ##hi sigmas##
