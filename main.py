@@ -76,6 +76,31 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
+def remove_expired_bans():
+    url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
+    params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        return
+    now = datetime.utcnow()
+    cards = response.json()
+    for card in cards:
+        desc = card.get('desc', '')
+        if "Permanent" in desc:
+            continue
+        ban_days = 0
+        timestamp_str = None
+        for line in desc.splitlines():
+            if line.startswith("Ban Length:"):
+                ban_days = int(line.split(":")[1].strip().split()[0])
+            if line.startswith("Timestamp:"):
+                timestamp_str = line.split(":", 1)[1].strip()
+        if timestamp_str:
+            ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC")
+            if now - ban_time >= timedelta(days=ban_days):
+                delete_url = f"https://api.trello.com/1/cards/{card['id']}"
+                requests.delete(delete_url, params=params)
+
 ## ban command
 @tree.command(name="ban", description="Ban a Roblox Player From Your Game")
 @app_commands.describe(
@@ -113,31 +138,6 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
         await interaction.response.send_message(
             f"❌ Failed to ban **{username}**"
         )
-
-@tree.command(name="clearbans", description="Clear all bans from the Trello list")
-async def clearbans(interaction: discord.Interaction):
-    url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
-    params = {
-        'key': TRELLO_KEY,
-        'token': TRELLO_TOKEN
-    }
-
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        await interaction.response.send_message("❌ Failed to fetch cards.")
-        return
-
-    cards = response.json()
-    deleted = 0
-
-    for card in cards:
-        delete_url = f"https://api.trello.com/1/cards/{card['id']}"
-        delete_resp = requests.delete(delete_url, params=params)
-        if delete_resp.status_code == 200:
-            deleted += 1
-
-    await interaction.response.send_message(f"🗑️ Cleared {deleted} ban(s) from the list.")
-
 # unban cmd
 @tree.command(name="unban", description="Unban a user")
 @app_commands.describe(username="Roblox username to unban", reason="Why you're unbanning them")
@@ -204,6 +204,10 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
 
 
 token = os.environ.get("ERM")
+
+@tasks.loop(minutes=60)
+async def expired_bans_task():
+    remove_expired_bans()
 
 @bot.event
 async def on_ready():
