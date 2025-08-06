@@ -2,7 +2,7 @@
 
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import requests
 import os
 from datetime import datetime
