@@ -73,15 +73,21 @@ def is_user_already_banned(username: str) -> bool:
 async def check_expired_bans():
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException:
         return
+
     now = datetime.now(timezone.utc)
     cards = response.json()
+
     for card in cards:
         desc = card.get('desc', '')
-        if "Permanent" in desc:
+        if "permanent" in desc.lower():
             continue
+
         ban_days = None
         timestamp_str = None
         for line in desc.splitlines():
@@ -96,21 +102,29 @@ async def check_expired_bans():
                     timestamp_str = line.split(":", 1)[1].strip()
                 except:
                     timestamp_str = None
+
         if ban_days is None or not timestamp_str:
             continue
+
         try:
             ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
         except:
             continue
+
         if now - ban_time >= timedelta(days=ban_days):
             delete_url = f"https://api.trello.com/1/cards/{card['id']}"
-            requests.delete(delete_url, params=params)
-            log_title = f"{card['name']} [AUTO UNBAN]"
+            try:
+                requests.delete(delete_url, params=params, timeout=10)
+            except requests.RequestException:
+                continue
+
+            log_title = f"{card.get('name', 'Unknown')} [AUTO UNBAN]"
             log_desc = (
                 f"**Unbanned by**: AUTO UNBAN\n"
                 f"**Reason**: Ban duration expired\n"
                 f"**Banned At**: {ban_time.strftime('%Y-%m-%d %H:%M UTC')}\n"
-                f"**Unbanned At**: {now.strftime('%Y-%m-%d %H:%M UTC')}"
+                f"**Unbanned At**: {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
+                f"**Duration**: {(now - ban_time).days} days"
             )
             log_url = "https://api.trello.com/1/cards"
             create_params = {
@@ -120,7 +134,11 @@ async def check_expired_bans():
                 'key': TRELLO_KEY,
                 'token': TRELLO_TOKEN
             }
-            requests.post(log_url, data=create_params)
+            try:
+                requests.post(log_url, data=create_params, timeout=10)
+            except requests.RequestException:
+                continue
+
 
 async def unban_user(session, card, ban_time, unban_time, params):
     """Remove ban card and create log entry."""
