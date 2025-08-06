@@ -69,7 +69,6 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
-
 @tasks.loop(minutes=1)
 async def check_expired_bans():
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
@@ -77,14 +76,12 @@ async def check_expired_bans():
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return
-
     now = datetime.now(timezone.utc)
     cards = response.json()
     for card in cards:
         desc = card.get('desc', '')
         if "Permanent" in desc:
             continue
-
         ban_days = None
         timestamp_str = None
         for line in desc.splitlines():
@@ -99,19 +96,15 @@ async def check_expired_bans():
                     timestamp_str = line.split(":", 1)[1].strip()
                 except:
                     timestamp_str = None
-
         if ban_days is None or not timestamp_str:
             continue
-
         try:
             ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
         except:
             continue
-
         if now - ban_time >= timedelta(days=ban_days):
             delete_url = f"https://api.trello.com/1/cards/{card['id']}"
             requests.delete(delete_url, params=params)
-
             log_title = f"{card['name']} [AUTO UNBAN]"
             log_desc = (
                 f"**Unbanned by**: AUTO UNBAN\n"
