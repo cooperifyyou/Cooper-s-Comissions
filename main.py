@@ -30,7 +30,13 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
-    description_game = f"{reason}\nBan Length: {duration}"
+    game_log = (
+    f"**Reason**: {reason}/n"
+    f"**How Long**: {duration}/n"
+    f"**Timestamp**: {timestamp}"
+    )
+    
+    description_game = game_log
 
     url = "https://api.trello.com/1/cards"
 
