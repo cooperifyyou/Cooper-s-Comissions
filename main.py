@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 import requests
 import os
 from datetime import datetime, timezone, timedelta
+from tasks import loop
 
 LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')
 TRELLO_KEY = os.environ.get('APIKEY')
