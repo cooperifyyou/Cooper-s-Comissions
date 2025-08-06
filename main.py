@@ -21,17 +21,20 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     title_log = f"{username} [BAN]"
     duration = "Permanent" if days == 0 else f"{days} days"
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
     description_log = (
         f"**Banned by**: {whobanned}\n"
         f"**Reason**: {reason}\n"
         f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
+
     description_game = (
-        f"**Reason**: {reason}/n"
-        f"**How Long**: {duration}/n"
+        f"**Reason**: {reason}\n"
+        f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
+
     url = "https://api.trello.com/1/cards"
     params_log = {
         'idList': TRELLO_LOG_ID,
@@ -47,11 +50,21 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
-    response_log = requests.post(url, data=params_log)
-    response_game = requests.post(url, data=params_game)
-    print("log response", response_log.status_code, response_log.text)
-    print("game response:", response_game.status_code, response_game.text)
-    return response_log.status_code == 200 and response_game.status_code == 200
+
+    try:
+        response_log = requests.post(url, data=params_log, timeout=10)
+        response_game = requests.post(url, data=params_game, timeout=10)
+    except requests.RequestException as e:
+        print("Error creating Trello card:", e)
+        return False
+
+    if response_log.status_code == 200 and response_game.status_code == 200:
+        return True
+    else:
+        print("Log response:", response_log.status_code, response_log.text)
+        print("Game response:", response_game.status_code, response_game.text)
+        return False
+
 
 def is_user_already_banned(username: str) -> bool:
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
