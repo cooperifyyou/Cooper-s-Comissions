@@ -17,15 +17,16 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 tree = bot.tree
 
 def add_user(username: str, whobanned: str, reason: str, days: int):
-    if days == 0:
-        title_log = f"{username} [Perm Ban]"
-        duration = "Permanent"
-    else:
-        title = username
-        duration = str(days)
-
-    title_log = f"{username} [Ban]"
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    if days == 0:
+        duration = "Permanent"
+        title_log = f"{username} [Perm Ban]"
+    else:
+        duration = str(days)
+        title_log = f"{username} [Ban]"
+
+    title = username  
 
     description_log = (
         f"**Banned by**: {whobanned}\n"
@@ -60,7 +61,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         response_log = requests.post(url, data=params_log, timeout=10)
         response_game = requests.post(url, data=params_game, timeout=10)
     except requests.RequestException as e:
-        print("Failed to create the Trello card:", e)
+        print("failed to create trello card:", e)
         return False
 
     if response_log.status_code == 200 and response_game.status_code == 200:
