@@ -30,10 +30,10 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     )
 
     description_game = (
-        f"**Reason**: {reason}/n"
-        f"**How many Days**: {duration}\n"
-        f"**Timestamp**: {timestamp}"
-    )
+    f"**Reason**: {reason}\n"
+    f"**How many Days**: {duration}\n"
+    f"**Timestamp**: {timestamp}"
+)
 
     url = "https://api.trello.com/1/cards"
     params_log = {
@@ -55,7 +55,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         response_log = requests.post(url, data=params_log, timeout=10)
         response_game = requests.post(url, data=params_game, timeout=10)
     except requests.RequestException as e:
-        print("Error creating Trello card:", e)
+        print("failed to create the trello card.. just put the fries in the bag:", e)
         return False
 
     if response_log.status_code == 200 and response_game.status_code == 200:
@@ -127,9 +127,9 @@ async def check_expired_bans():
             delete_url = f"https://api.trello.com/1/cards/{card['id']}"
             requests.delete(delete_url, params=params)
 
-            log_title = f"{card['name']} [AUTO UNBAN]"
+            log_title = f"{card['name']} [Auto Unban]"
             log_desc = (
-                f"**Unbanned by**: AUTO UNBAN\n"
+                f"**Unbanned by**: Auto Unban\n"
                 f"**Reason**: Ban duration expired\n"
                 f"**Banned At**: {ban_time.strftime('%Y-%m-%d %H:%M UTC')}\n"
                 f"**Unbanned At**: {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
@@ -213,10 +213,11 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
     if log_channel:
         await log_channel.send(embed=embed)
 
+## making this so that only bot developer can use it ##
 @tree.command(name="clear_bans", description="Clear all cards from both the game ban list and the log list")
 async def clear_bans(interaction: discord.Interaction):
-    await interaction.response.defer()  # Acknowledge the command immediately
-
+    await interaction.response.defer()
+    
     lists_to_clear = [TRELLO_LIST_ID, TRELLO_LOG_ID]
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
 
