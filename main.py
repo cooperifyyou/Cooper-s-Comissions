@@ -101,6 +101,19 @@ def remove_expired_bans():
                 delete_url = f"https://api.trello.com/1/cards/{card['id']}"
                 requests.delete(delete_url, params=params)
 
+                log_title = f"{card['name']} [AUTO UNBAN]"
+                log_desc = f"**Unbanned by**: AUTO UNBAN\n**Reason**: Ban duration expired\n**Timestamp**: {now.strftime('%Y-%m-%d %H:%M UTC')}"
+                log_url = "https://api.trello.com/1/cards"
+                create_params = {
+                    'idList': TRELLO_LOG_ID,
+                    'name': log_title,
+                    'desc': log_desc,
+                    'key': TRELLO_KEY,
+                    'token': TRELLO_TOKEN
+                }
+                requests.post(log_url, data=create_params)
+
+
 ## ban command
 @tree.command(name="ban", description="Ban a Roblox Player From Your Game")
 @app_commands.describe(
