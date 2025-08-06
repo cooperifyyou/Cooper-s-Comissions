@@ -5,7 +5,9 @@ from discord import app_commands
 from discord.ext import commands, tasks
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+
+now = datetime.now(timezone.utc)
 
 # configurationnnnn #
 LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in.. [This is a environmental variable]
@@ -117,7 +119,7 @@ async def check_expired_bans():
             continue
 
         try:
-            ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC")
+           ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
         except:
             continue
 
