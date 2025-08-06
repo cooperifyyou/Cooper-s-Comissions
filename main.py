@@ -30,6 +30,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     )
 
     description_game = (
+        f"**Reason**: {reason}/n"
         f"**How many Days**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
