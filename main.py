@@ -111,7 +111,7 @@ def remove_expired_bans():
                 log_desc = f"**Unbanned by**: AUTO UNBAN\n**Reason**: Ban duration expired\n**Timestamp**: {now.strftime('%Y-%m-%d %H:%M UTC')}"
                 log_url = "https://api.trello.com/1/cards"
                 create_params = {
-                    'idList': TRELLO_LOG_ID,
+                    'idList': LIST_ID,
                     'name': log_title,
                     'desc': log_desc,
                     'key': TRELLO_KEY,
