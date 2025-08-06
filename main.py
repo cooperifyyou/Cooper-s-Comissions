@@ -67,7 +67,7 @@ def is_user_already_banned(username: str) -> bool:
 
     response = requests.get(url, params=params)
     if response.status_code != 200:
-        print("Failed to fetch Trello cards:", response.text)
+        print("failed to fetch the dang trello cards", response.text)
         return False  
 
     cards = response.json()
@@ -115,7 +115,7 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
     if add_user(username, whobanned, reason, days):
         duration_text = "Permanent" if days == 0 else f"{days} days"
         await interaction.response.send_message(
-            f"✅ Successfully banned **{username}**."
+            f"Successfully banned {username}."
         )
         
         embed = discord.Embed(
@@ -136,7 +136,7 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
 
     else:
         await interaction.response.send_message(
-            f"❌ Failed to ban **{username}**"
+            f"Failed to ban {username}."
         )
 # unban cmd
 @tree.command(name="unban", description="Unban a user")
@@ -160,13 +160,13 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
             break
 
     if not target_card:
-        await interaction.response.send_message(f"❌ No ban found for **{username}** in the game integration list.")
+        await interaction.response.send_message(f"No ban was found for **{username}**.")
     else:
         delete_url = f"https://api.trello.com/1/cards/{target_card['id']}"
         delete_response = requests.delete(delete_url, params=params)
 
         if delete_response.status_code != 200:
-            await interaction.response.send_message(f"❌ Failed to unban **{username}**.")
+            await interaction.response.send_message(f"Failed to unban {username}.")
             return
 
     log_title = f"{username} [UNBAN]"
@@ -187,7 +187,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
 
     requests.post(add_url, data=create_params)
 
-    await interaction.response.send_message(f"✅ Successfully unbanned **{username}**.")
+    await interaction.response.send_message(f"Successfully unbanned {username}.")
 
     embed = discord.Embed(
         title="Unban Command Used",
@@ -205,7 +205,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
 
 token = os.environ.get("ERM")
 
-@tasks.loop(minutes=30)
+@tasks.loop(minutes=1)
 async def expired_bans_task():
     remove_expired_bans()
 
