@@ -213,6 +213,36 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
     if log_channel:
         await log_channel.send(embed=embed)
 
+@tree.command(name="clear_bans", description="Clear all cards from both the game ban list and the log list")
+async def clear_bans(interaction: discord.Interaction):
+    await interaction.response.defer()  # Acknowledge the command immediately
+
+    lists_to_clear = [TRELLO_LIST_ID, TRELLO_LOG_ID]
+    params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
+
+    total_deleted = 0
+    for list_id in lists_to_clear:
+        get_url = f"https://api.trello.com/1/lists/{list_id}/cards"
+        try:
+            response = requests.get(get_url, params=params, timeout=10)
+            response.raise_for_status()
+            cards = response.json()
+        except requests.RequestException as e:
+            await interaction.followup.send(f"Failed to fetch cards for list {list_id}: {e}")
+            return
+
+        for card in cards:
+            delete_url = f"https://api.trello.com/1/cards/{card['id']}"
+            try:
+                del_resp = requests.delete(delete_url, params=params, timeout=10)
+                if del_resp.status_code == 200:
+                    total_deleted += 1
+            except requests.RequestException:
+                continue
+
+    await interaction.followup.send(f"Successfully cleared {total_deleted} cards from both lists.")
+
+
 token = os.environ.get("ERM")
 
 @bot.event
