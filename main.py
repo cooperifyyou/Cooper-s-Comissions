@@ -70,18 +70,16 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
-@tasks.loop(minutes=5)
-async def check_expired_bans():
-    import requests
-    from datetime import datetime, timedelta
 
+@tasks.loop(minutes=1)
+async def check_expired_bans():
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     cards = response.json()
     for card in cards:
         desc = card.get('desc', '')
@@ -91,28 +89,30 @@ async def check_expired_bans():
         ban_days = None
         timestamp_str = None
         for line in desc.splitlines():
-            if line.lower().startswith("ban length:"):
+            line_lower = line.lower()
+            if "how long" in line_lower or "ban length" in line_lower:
                 try:
-                    ban_days = int(line.split(":")[1].strip().split()[0])
+                    ban_days = int(line.split()[-2])
                 except:
                     ban_days = 0
-            if line.lower().startswith("timestamp:"):
-                timestamp_str = line.split(":", 1)[1].strip()
+            if "timestamp" in line_lower:
+                try:
+                    timestamp_str = line.split(":", 1)[1].strip()
+                except:
+                    timestamp_str = None
 
         if ban_days is None or not timestamp_str:
             continue
 
         try:
-            ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC")
+            ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
         except:
             continue
 
         if now - ban_time >= timedelta(days=ban_days):
-            # delete expired ban
             delete_url = f"https://api.trello.com/1/cards/{card['id']}"
             requests.delete(delete_url, params=params)
 
-            # log auto unban
             log_title = f"{card['name']} [AUTO UNBAN]"
             log_desc = (
                 f"**Unbanned by**: AUTO UNBAN\n"
