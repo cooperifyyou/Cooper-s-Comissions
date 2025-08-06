@@ -17,9 +17,14 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 tree = bot.tree
 
 def add_user(username: str, whobanned: str, reason: str, days: int):
-    title = username
-    title_log = f"{username} [BAN]"
-    duration = "Permanent" if days == 0 else str(days)
+    if days == 0:
+        title = f"{username} [Perm Ban]"
+        duration = "Permanent"
+    else:
+        title = username
+        duration = str(days)
+
+    title_log = f"{username} [Ban]"
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     description_log = (
@@ -30,10 +35,10 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     )
 
     description_game = (
-    f"**Reason**: {reason}\n"
-    f"**How many Days**: {duration}\n"
-    f"**Timestamp**: {timestamp}"
-)
+        f"**Reason**: {reason}\n"
+        f"**How many Days**: {duration}\n"
+        f"**Timestamp**: {timestamp}"
+    )
 
     url = "https://api.trello.com/1/cards"
     params_log = {
@@ -55,7 +60,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         response_log = requests.post(url, data=params_log, timeout=10)
         response_game = requests.post(url, data=params_game, timeout=10)
     except requests.RequestException as e:
-        print("failed to create the trello card.. just put the fries in the bag:", e)
+        print("Failed to create the Trello card:", e)
         return False
 
     if response_log.status_code == 200 and response_game.status_code == 200:
@@ -64,6 +69,7 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         print("Log response:", response_log.status_code, response_log.text)
         print("Game response:", response_game.status_code, response_game.text)
         return False
+
 
 
 def is_user_already_banned(username: str) -> bool:
