@@ -1,21 +1,16 @@
-## cooperifyyou's discord/trello integration ##
-
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 import requests
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
-now = datetime.now(timezone.utc)
-
-# configurationnnnn #
-LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in.. [This is a environmental variable]
-TRELLO_KEY = os.environ.get('APIKEY')  # this is your trello API key [This is a environmental variable]
-TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # this is your trello token [This is a environmental variable] 
-TRELLO_BOARD_ID = os.environ.get('BOARDID')  # this is your board id [This is a environmental variable] 
-TRELLO_LIST_ID = os.environ.get('LISTID')  # ths is the game integration list id [Game Integration] [This is a environmental variable]
-TRELLO_LOG_ID = os.environ.get('TRELLOLOGID') # this is the admin log list id, [This is a environmental variable]
+LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')
+TRELLO_KEY = os.environ.get('APIKEY')
+TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')
+TRELLO_BOARD_ID = os.environ.get('BOARDID')
+TRELLO_LIST_ID = os.environ.get('LISTID')
+TRELLO_LOG_ID = os.environ.get('TRELLOLOGID')
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -25,23 +20,19 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     title = username
     title_log = f"{username} [BAN]"
     duration = "Permanent" if days == 0 else f"{days} days"
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     description_log = (
         f"**Banned by**: {whobanned}\n"
         f"**Reason**: {reason}\n"
         f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
-    game_log = (
-    f"**Reason**: {reason}/n"
-    f"**How Long**: {duration}/n"
-    f"**Timestamp**: {timestamp}"
+    description_game = (
+        f"**Reason**: {reason}/n"
+        f"**How Long**: {duration}/n"
+        f"**Timestamp**: {timestamp}"
     )
-    
-    description_game = game_log
-
     url = "https://api.trello.com/1/cards"
-
     params_log = {
         'idList': TRELLO_LOG_ID,
         'name': title_log,
@@ -49,7 +40,6 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
-
     params_game = {
         'idList': TRELLO_LIST_ID,
         'name': title,
@@ -57,13 +47,10 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
-
     response_log = requests.post(url, data=params_log)
     response_game = requests.post(url, data=params_game)
-
     print("log response", response_log.status_code, response_log.text)
     print("game response:", response_game.status_code, response_game.text)
-
     return response_log.status_code == 200 and response_game.status_code == 200
 
 def is_user_already_banned(username: str) -> bool:
@@ -72,38 +59,29 @@ def is_user_already_banned(username: str) -> bool:
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
-
     response = requests.get(url, params=params)
     if response.status_code != 200:
         print("failed to fetch the dang trello cards", response.text)
         return False  
-
     cards = response.json()
     for card in cards:
         if card['name'].strip().lower() == username.strip().lower():
             return True
     return False
 
-from discord.ext import tasks
-
 @tasks.loop(minutes=5)
 async def check_expired_bans():
-    import requests
-    from datetime import datetime, timedelta
-
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return
-
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     cards = response.json()
     for card in cards:
         desc = card.get('desc', '')
         if "Permanent" in desc:
             continue
-
         ban_days = None
         timestamp_str = None
         for line in desc.splitlines():
@@ -114,20 +92,15 @@ async def check_expired_bans():
                     ban_days = 0
             if line.lower().startswith("timestamp:"):
                 timestamp_str = line.split(":", 1)[1].strip()
-
         if ban_days is None or not timestamp_str:
             continue
-
         try:
            ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
         except:
             continue
-
         if now - ban_time >= timedelta(days=ban_days):
             delete_url = f"https://api.trello.com/1/cards/{card['id']}"
             requests.delete(delete_url, params=params)
-
-            # log auto unban
             log_title = f"{card['name']} [AUTO UNBAN]"
             log_desc = (
                 f"**Unbanned by**: AUTO UNBAN\n"
@@ -145,84 +118,56 @@ async def check_expired_bans():
             }
             requests.post(log_url, data=create_params)
 
-
-
-
-## ban command
 @tree.command(name="ban", description="Ban a Roblox Player From Your Game")
-@app_commands.describe(
-    username="Roblox Username To Ban", reason="Why you're banning them", days="Ban duration in days (0 = permanent)"
-)
+@app_commands.describe(username="Roblox Username To Ban", reason="Why you're banning them", days="Ban duration in days (0 = permanent)")
 async def ban(interaction: discord.Interaction, username: str, reason: str, days: int):
     whobanned = interaction.user.name
     if is_user_already_banned(username):
-     await interaction.response.send_message(f"**{username}** is already banned.")
-     return 
-        
+        await interaction.response.send_message(f"**{username}** is already banned.")
+        return 
     if add_user(username, whobanned, reason, days):
         duration_text = "Permanent" if days == 0 else f"{days} days"
-        await interaction.response.send_message(
-            f"Successfully banned {username}."
-        )
-        
-        embed = discord.Embed(
-            title="Ban Command Used",
-            color=discord.Color.red(),
-            timestamp=discord.utils.utcnow()
-        )
+        await interaction.response.send_message(f"Successfully banned {username}.")
+        embed = discord.Embed(title="Ban Command Used", color=discord.Color.red(), timestamp=discord.utils.utcnow())
         embed.add_field(name="Banned User", value=f"`{username}`", inline=True)
         embed.add_field(name="Banned By", value=interaction.user.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.add_field(name="How Long", value=duration_text, inline=True)
-
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=embed)
         else:
             print("the log channel was not found")
-
     else:
-        await interaction.response.send_message(
-            f"Failed to ban {username}."
-        )
-# unban cmd
+        await interaction.response.send_message(f"Failed to ban {username}.")
+
 @tree.command(name="unban", description="Unban a user")
 @app_commands.describe(username="Roblox username to unban", reason="Why you're unbanning them")
 async def unban(interaction: discord.Interaction, username: str, reason: str):
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     get_url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
-    params = {
-        'key': TRELLO_KEY,
-        'token': TRELLO_TOKEN
-    }
-
+    params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     response = requests.get(get_url, params=params)
     cards = response.json() if response.status_code == 200 else []
-
     target_card = None
     for card in cards:
         if card["name"].strip().lower() == username.strip().lower():
             target_card = card
             break
-
     if not target_card:
         await interaction.response.send_message(f"No ban was found for **{username}**.")
-    else:
-        delete_url = f"https://api.trello.com/1/cards/{target_card['id']}"
-        delete_response = requests.delete(delete_url, params=params)
-
-        if delete_response.status_code != 200:
-            await interaction.response.send_message(f"Failed to unban {username}.")
-            return
-
+        return
+    delete_url = f"https://api.trello.com/1/cards/{target_card['id']}"
+    delete_response = requests.delete(delete_url, params=params)
+    if delete_response.status_code != 200:
+        await interaction.response.send_message(f"Failed to unban {username}.")
+        return
     log_title = f"{username} [UNBAN]"
     log_desc = (
         f"**Unbanned by**: {interaction.user.name}\n"
         f"**Reason**: {reason}\n"
         f"**Timestamp**: {timestamp}"
     )
-
     add_url = "https://api.trello.com/1/cards"
     create_params = {
         'idList': TRELLO_LOG_ID,
@@ -231,27 +176,17 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
         'key': TRELLO_KEY,
         'token': TRELLO_TOKEN
     }
-
     requests.post(add_url, data=create_params)
-
     await interaction.response.send_message(f"Successfully unbanned {username}.")
-
-    embed = discord.Embed(
-        title="Unban Command Used",
-        color=discord.Color.green(),
-        timestamp=discord.utils.utcnow()
-    )
+    embed = discord.Embed(title="Unban Command Used", color=discord.Color.green(), timestamp=discord.utils.utcnow())
     embed.add_field(name="Unbanned User", value=f"`{username}`", inline=True)
     embed.add_field(name="Unbanned By", value=interaction.user.mention, inline=True)
     embed.add_field(name="Reason", value=reason, inline=False)
-
     log_channel = bot.get_channel(LOG_CHANNEL_ID)
     if log_channel:
         await log_channel.send(embed=embed)
 
-
 token = os.environ.get("ERM")
-
 
 @bot.event
 async def on_ready():
@@ -260,5 +195,3 @@ async def on_ready():
     print(f"bot is working and is online as {bot.user}")
 
 bot.run(token)
-
-##hi sigmas##
