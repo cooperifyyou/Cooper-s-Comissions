@@ -18,7 +18,7 @@ tree = bot.tree
 
 def add_user(username: str, whobanned: str, reason: str, days: int):
     if days == 0:
-        title = f"{username} [Perm Ban]"
+        title_log = f"{username} [Perm Ban]"
         duration = "Permanent"
     else:
         title = username
@@ -195,7 +195,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
     if delete_response.status_code != 200:
         await interaction.response.send_message(f"Failed to unban {username}.")
         return
-    log_title = f"{username} [UNBAN]"
+    log_title = f"{username} [Unban]"
     log_desc = (
         f"**Unbanned by**: {interaction.user.name}\n"
         f"**Reason**: {reason}\n"
