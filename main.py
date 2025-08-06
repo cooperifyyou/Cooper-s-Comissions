@@ -66,10 +66,9 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     if response_log.status_code == 200 and response_game.status_code == 200:
         return True
     else:
-        print("Log response:", response_log.status_code, response_log.text)
-        print("Game response:", response_game.status_code, response_game.text)
+        print("log response:", response_log.status_code, response_log.text)
+        print("game response:", response_game.status_code, response_game.text)
         return False
-
 
 
 def is_user_already_banned(username: str) -> bool:
@@ -88,7 +87,7 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=10) ## change this to the amount of minutes you want it to check for expired bans and remove thenm
 async def check_expired_bans():
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
@@ -151,7 +150,7 @@ async def check_expired_bans():
             }
             requests.post(log_url, data=create_params)
 
-@tree.command(name="ban", description="Ban a Roblox Player From Your Game")
+@tree.command(name="ban", description="Ban a Roblox Player")
 @app_commands.describe(username="Roblox Username To Ban", reason="Why you're banning them", days="Ban duration in days (0 = permanent)")
 async def ban(interaction: discord.Interaction, username: str, reason: str, days: int):
     whobanned = interaction.user.name
@@ -187,6 +186,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
         if card["name"].strip().lower() == username.strip().lower():
             target_card = card
             break
+            
     if not target_card:
         await interaction.response.send_message(f"No ban was found for **{username}**.")
         return
@@ -201,6 +201,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
         f"**Reason**: {reason}\n"
         f"**Timestamp**: {timestamp}"
     )
+    
     add_url = "https://api.trello.com/1/cards"
     create_params = {
         'idList': TRELLO_LOG_ID,
@@ -219,39 +220,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
     if log_channel:
         await log_channel.send(embed=embed)
 
-## making this so that only bot developer can use it ##
-@tree.command(name="clear_bans", description="Clear all cards from both the game ban list and the log list")
-async def clear_bans(interaction: discord.Interaction):
-    await interaction.response.defer()
-    
-    lists_to_clear = [TRELLO_LIST_ID, TRELLO_LOG_ID]
-    params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
-
-    total_deleted = 0
-    for list_id in lists_to_clear:
-        get_url = f"https://api.trello.com/1/lists/{list_id}/cards"
-        try:
-            response = requests.get(get_url, params=params, timeout=10)
-            response.raise_for_status()
-            cards = response.json()
-        except requests.RequestException as e:
-            await interaction.followup.send(f"Failed to fetch cards for list {list_id}: {e}")
-            return
-
-        for card in cards:
-            delete_url = f"https://api.trello.com/1/cards/{card['id']}"
-            try:
-                del_resp = requests.delete(delete_url, params=params, timeout=10)
-                if del_resp.status_code == 200:
-                    total_deleted += 1
-            except requests.RequestException:
-                continue
-
-    await interaction.followup.send(f"Successfully cleared {total_deleted} cards from both lists.")
-
-
 token = os.environ.get("ERM")
-
 @bot.event
 async def on_ready():
     await tree.sync()
