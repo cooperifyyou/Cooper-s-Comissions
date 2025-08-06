@@ -205,7 +205,7 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
 
 token = os.environ.get("ERM")
 
-@tasks.loop(minutes=60)
+@tasks.loop(minutes=30)
 async def expired_bans_task():
     remove_expired_bans()
 
