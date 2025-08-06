@@ -107,12 +107,12 @@ async def check_expired_bans():
             if line.lower().startswith("**how long**") or line.lower().startswith("ban length"):
                 try:
                     ban_days = int(line.split()[2])
-                except:
+                except Exception:
                     ban_days = 0
             if line.lower().startswith("**timestamp**"):
                 try:
                     timestamp_str = line.split(":", 1)[1].strip()
-                except:
+                except Exception:
                     timestamp_str = None
 
         if ban_days is None or not timestamp_str:
@@ -120,7 +120,7 @@ async def check_expired_bans():
 
         try:
             ban_time = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
-        except:
+        except Exception:
             continue
 
         if now - ban_time >= timedelta(days=ban_days):
