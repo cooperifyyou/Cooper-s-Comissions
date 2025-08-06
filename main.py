@@ -1,4 +1,4 @@
-## Discord Bot With Trello & Roblox Integration ##
+## cooperifyyou's discord/trello integration ##
 
 import discord
 from discord import app_commands
@@ -8,12 +8,12 @@ import os
 from datetime import datetime
 
 # configurationnnnn #
-LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in
-TRELLO_KEY = os.environ.get('APIKEY')  # this is your trello API key
-TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # this is your trello token
-TRELLO_BOARD_ID = os.environ.get('BOARDID')  # this is your board id
-TRELLO_LIST_ID = os.environ.get('LISTID')  # ths is the game integration list id [Game Integration]
-TRELLO_LOG_ID = os.environ.get('TRELLOLOGID') # this is the admin log list id,
+LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')  # replace this with your channel you want to have the logs in.. [This is a environmental variable]
+TRELLO_KEY = os.environ.get('APIKEY')  # this is your trello API key [This is a environmental variable]
+TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')  # this is your trello token [This is a environmental variable] 
+TRELLO_BOARD_ID = os.environ.get('BOARDID')  # this is your board id [This is a environmental variable] 
+TRELLO_LIST_ID = os.environ.get('LISTID')  # ths is the game integration list id [Game Integration] [This is a environmental variable]
+TRELLO_LOG_ID = os.environ.get('TRELLOLOGID') # this is the admin log list id, [This is a environmental variable]
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -24,16 +24,12 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     title_log = f"{username} [BAN]"
     duration = "Permanent" if days == 0 else f"{days} days"
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-
-    # Description for log list card
     description_log = (
         f"**Banned by**: {whobanned}\n"
         f"**Reason**: {reason}\n"
         f"**How Long**: {duration}\n"
         f"**Timestamp**: {timestamp}"
     )
-
-    # Description for game integration list card
     description_game = f"{reason}\nBan Length: {duration}"
 
     url = "https://api.trello.com/1/cards"
@@ -57,11 +53,10 @@ def add_user(username: str, whobanned: str, reason: str, days: int):
     response_log = requests.post(url, data=params_log)
     response_game = requests.post(url, data=params_game)
 
-    print("Trello Log Response:", response_log.status_code, response_log.text)
-    print("Trello Game Response:", response_game.status_code, response_game.text)
+    print("log response", response_log.status_code, response_log.text)
+    print("game response:", response_game.status_code, response_game.text)
 
     return response_log.status_code == 200 and response_game.status_code == 200
-
 
 def is_user_already_banned(username: str) -> bool:
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
@@ -81,7 +76,6 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
-
 ## ban command
 @tree.command(name="ban", description="Ban a Roblox Player From Your Game")
 @app_commands.describe(
@@ -92,13 +86,13 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
     if is_user_already_banned(username):
      await interaction.response.send_message(f"**{username}** is already banned.")
      return 
-
+        
     if add_user(username, whobanned, reason, days):
         duration_text = "Permanent" if days == 0 else f"{days} days"
         await interaction.response.send_message(
             f"✅ Successfully banned **{username}**."
         )
-
+        
         embed = discord.Embed(
             title="Ban Command Used",
             color=discord.Color.red(),
@@ -149,8 +143,7 @@ async def clearbans(interaction: discord.Interaction):
 @app_commands.describe(username="Roblox username to unban", reason="Why you're unbanning them")
 async def unban(interaction: discord.Interaction, username: str, reason: str):
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-
-    # Get cards from game integration list (TRELLO_LIST_ID)
+    
     get_url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
     params = {
         'key': TRELLO_KEY,
@@ -176,7 +169,6 @@ async def unban(interaction: discord.Interaction, username: str, reason: str):
             await interaction.response.send_message(f"❌ Failed to unban **{username}**.")
             return
 
-    # Add new card to LOG list for UNBAN (TRELLO_LOG_ID)
     log_title = f"{username} [UNBAN]"
     log_desc = (
         f"**Unbanned by**: {interaction.user.name}\n"
