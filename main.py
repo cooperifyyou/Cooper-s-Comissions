@@ -87,7 +87,7 @@ def is_user_already_banned(username: str) -> bool:
             return True
     return False
 
-@tasks.loop(minutes=10) ## change this to the amount of minutes you want it to check for expired bans and remove thenm
+@tasks.loop(minutes=5) ## change this to the amount of minutes you want it to check for expired bans and remove thenm
 async def check_expired_bans():
     params = {'key': TRELLO_KEY, 'token': TRELLO_TOKEN}
     url = f"https://api.trello.com/1/lists/{TRELLO_LIST_ID}/cards"
