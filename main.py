@@ -174,26 +174,30 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
         await interaction.response.send_message(f"**{username}** is already banned.")
         return 
     if add_user(username, whobanned, reason, days):
-        duration_text = "Permanent" if days == 0 else str(days)
-        await interaction.response.send_message(f"Successfully banned {username}.")
-        embed = discord.Embed(title="Ban Command Used", color=discord.Color.red(), timestamp=discord.utils.utcnow())
-        embed.add_field(name="Banned User", value=f"`{username}`", inline=True)
-        embed.add_field(name="Banned By", value=interaction.user.mention, inline=True)
-        embed.add_field(name="Reason", value=reason, inline=False)
-        embed.add_field(name="How many Days", value=duration_text, inline=True)
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            await log_channel.send(embed=embed)
+    duration_text = "Permanent" if days == 0 else str(days)
+    await interaction.response.send_message(f"Successfully banned {username}.")
+    
+    embed = discord.Embed(title="Ban Command Used", color=discord.Color.red(), timestamp=discord.utils.utcnow())
+    embed.add_field(name="Banned User", value=f"`{username}`", inline=True)
+    embed.add_field(name="Banned By", value=interaction.user.mention, inline=True)
+    embed.add_field(name="Reason", value=reason, inline=False)
+    embed.add_field(name="How many Days", value=duration_text, inline=True)
 
-        send_dev_embed(
-    title="dev log",
-    description=f"**someone got banned I think it was.. {username} and the person who banned them was {value-interaction.user.mention} and the reason was {reason}.",
-    color=0xFF0000
-)
-        else:
-            print("the log channel was not found")
+    log_channel = bot.get_channel(LOG_CHANNEL_ID)
+    if log_channel:
+        await log_channel.send(embed=embed)
     else:
-        await interaction.response.send_message(f"Failed to ban {username}.")
+        print("the log channel was not found")
+
+    # Send dev log after sending Discord log
+    send_dev_embed(
+        title="Dev Log",
+        description=f"**Ban Event:** {username} was banned by {interaction.user.mention}\n**Reason:** {reason}\n**Duration:** {duration_text}",
+        color=0xFF0000
+    )
+else:
+    await interaction.response.send_message(f"Failed to ban {username}.")
+
 
 @tree.command(name="unban", description="Unban a user")
 @app_commands.describe(username="Roblox username to unban", reason="Why you're unbanning them")
