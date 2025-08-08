@@ -5,7 +5,7 @@ import requests
 import os
 from datetime import datetime, timezone, timedelta
 
-LOG_CHANNEL_ID = os.environ.get('LOGCHANNELID')
+LOG_CHANNEL_ID = 1366528013029740594
 TRELLO_KEY = os.environ.get('APIKEY')
 TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')
 TRELLO_BOARD_ID = os.environ.get('BOARDID')
