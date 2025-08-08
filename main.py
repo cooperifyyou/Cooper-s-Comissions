@@ -6,7 +6,6 @@ import os
 from datetime import datetime, timezone, timedelta
 
 LOG_CHANNEL_ID = 1366528013029740594 # you can edit this put your channel id you want admin logs to be put in
-DEV_LOGS = "https://discord.com/api/webhooks/1366528029001646101/1pHp17gWD0o5Sywh907yVklK3jbmFKU_TO5mY7v-enmWeRhBFbTvRJXdfKRudvhiGuDT"   # this is for me to make sure bot status is good, nothing breaks etc,
 TRELLO_KEY = os.environ.get('APIKEY')
 TRELLO_TOKEN = os.environ.get('TRELLOTOKEN')
 TRELLO_BOARD_ID = os.environ.get('BOARDID')
@@ -152,19 +151,6 @@ async def check_expired_bans():
             }
             requests.post(log_url, data=create_params)
 
-def send_dev_embed(title: str, description: str, color: int = 0x3498db):
-    payload = {
-        "embeds": [{
-            "title": title,
-            "description": description,
-            "color": color
-        }]
-    }
-    try:
-        requests.post(DEV_LOGS, json=payload, timeout=5)
-    except requests.RequestException as e:
-        print(f"failed to send dev info embed: {e}")
-
 
 @tree.command(name="ban", description="Ban a Roblox Player")
 @app_commands.describe(username="Roblox Username To Ban", reason="Why you're banning them", days="Ban duration in days (0 = permanent)")
@@ -189,12 +175,6 @@ async def ban(interaction: discord.Interaction, username: str, reason: str, days
     else:
         print("the log channel was not found")
 
-    # Send dev log after sending Discord log
-    send_dev_embed(
-        title="Dev Log",
-        description=f"**Ban Event:** {username} was banned by {interaction.user.mention}\n**Reason:** {reason}\n**Duration:** {duration_text}",
-        color=0xFF0000
-    )
 else:
     await interaction.response.send_message(f"Failed to ban {username}.")
 
